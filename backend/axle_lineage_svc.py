@@ -5,6 +5,7 @@ from fastapi import APIRouter, HTTPException
 
 from auth import AuthHeader, require_user, require_writer
 from db import connect, now_iso, write_audit
+from lineage_rules import lineage_health
 from models import LineageIn
 
 router = APIRouter(tags=["lineage"])
@@ -21,7 +22,24 @@ def list_lineage(authorization: AuthHeader = None):
                LEFT JOIN weigh_tickets b ON b.id=e.to_ticket_id
                ORDER BY e.id DESC"""
         ).fetchall()
-        return {"items": [dict(r) for r in rows]}
+        health = lineage_health(conn)
+        return {
+            "items": [dict(r) for r in rows],
+            "complete": health["complete"],
+            "missing_count": health["missing_count"],
+            "missing": health["missing"],
+        }
+
+
+@router.get("/api/lineage/health")
+def lineage_health_view(
+    authorization: AuthHeader = None,
+    bl_code: str | None = None,
+    bridge_id: int | None = None,
+):
+    require_user(authorization)
+    with connect() as conn:
+        return lineage_health(conn, bl_code=bl_code, bridge_id=bridge_id)
 
 
 @router.get("/api/lineage/ticket/{ticket_id}")

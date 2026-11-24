@@ -1,7 +1,7 @@
 export const ticketsViewTemplate = `
 <section class="panel">
   <h2>过磅票采集</h2>
-  <p class="hint">录入各轴重 JSON；超重自动旁路挂起并开超重记录。</p>
+  <p class="hint">录入各轴重 JSON；超重自动旁路挂起并开超重记录。续磅票提交即同事务写入父子血缘边。</p>
   <div class="form-row">
     <div><label>车道</label>
       <select v-model.number="ticketForm.lane_id">
@@ -13,7 +13,7 @@ export const ticketsViewTemplate = `
         <option v-for="b in blList" :key="b.bl_code" :value="b.bl_code">{{ b.bl_code }}</option>
       </select>
     </div>
-    <div><label>车牌</label><input v-model="ticketForm.vehicle_plate"/></div>
+    <div><label>车牌</label><input v-model="ticketForm.vehicle_plate" placeholder="续磅加「续」后缀"/></div>
     <div><label>票号(可空)</label><input v-model="ticketForm.ticket_code"/></div>
   </div>
   <label>轴重 JSON</label>
@@ -22,8 +22,11 @@ export const ticketsViewTemplate = `
     <button @click="createTicket">过磅入闸</button>
     <button class="secondary" @click="refresh">刷新</button>
   </div>
+  <p v-if="lineageHealth.missing_count" class="action-err">
+    血统告警：{{ lineageHealth.missing_count }} 张续磅票缺父子边
+  </p>
   <table class="data-table">
-    <thead><tr><th>票号</th><th>车道</th><th>提单</th><th>毛重</th><th>状态</th><th>代</th><th></th></tr></thead>
+    <thead><tr><th>票号</th><th>车道</th><th>提单</th><th>毛重</th><th>状态</th><th>代</th><th>血缘</th><th></th></tr></thead>
     <tbody>
       <tr v-for="t in tickets" :key="t.id" @click="selectTicket(t)">
         <td>{{ t.ticket_code }}</td>
@@ -32,12 +35,14 @@ export const ticketsViewTemplate = `
         <td>{{ fmtT(t.gross_t) }}</td>
         <td><span class="badge" :class="ticketClass(t.status)">{{ t.status }}</span></td>
         <td>{{ t.generation }}</td>
+        <td><span class="badge" :class="t.lineage_ok ? 'pass' : 'fail'">{{ t.lineage_ok ? '齐全' : '缺边' }}</span></td>
         <td><button class="mini-btn" @click.stop="loadTicketDetail(t.id)">详情</button></td>
       </tr>
     </tbody>
   </table>
   <div v-if="ticketDetail" class="detail-box">
     <p>车牌 {{ ticketDetail.ticket.vehicle_plate }} · 超重挂起 {{ ticketDetail.overload_holds.length }} 条</p>
+    <p>血统 {{ ticketDetail.ticket.lineage_ok ? '齐全' : '缺父子边' }}</p>
   </div>
 </section>
 `;

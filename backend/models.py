@@ -33,6 +33,7 @@ class TicketIn(BaseModel):
     vehicle_plate: str
     axle_weights: list[AxleWeight]
     ticket_code: str | None = None
+    parent_ticket_id: int | None = None
 
 
 class OverloadOpenIn(BaseModel):

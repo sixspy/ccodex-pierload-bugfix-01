@@ -15,7 +15,9 @@ class LockIn(BaseModel):
     action: str = "acquire"
 
 
-def try_acquire(conn, lock_key: str, holder: str) -> bool:
+def try_acquire(
+    conn, lock_key: str, holder: str, allow_reentry: bool = True
+) -> bool:
     now = now_iso()
     row = conn.execute(
         "SELECT holder FROM pier_locks WHERE lock_key=?", (lock_key,)
@@ -26,7 +28,7 @@ def try_acquire(conn, lock_key: str, holder: str) -> bool:
             (lock_key, holder, now),
         )
         return True
-    if row["holder"] == holder:
+    if allow_reentry and row["holder"] == holder:
         return True
     conn.execute(
         """INSERT INTO contention_log(lock_key,actor,action,detail,created_at)
@@ -43,8 +45,10 @@ def release(conn, lock_key: str, holder: str) -> None:
     )
 
 
-def require_lock(conn, lock_key: str, holder: str) -> None:
-    if not try_acquire(conn, lock_key, holder):
+def require_lock(
+    conn, lock_key: str, holder: str, allow_reentry: bool = True
+) -> None:
+    if not try_acquire(conn, lock_key, holder, allow_reentry=allow_reentry):
         raise HTTPException(409, "争用：后到只记争用，不写业务")
 
 

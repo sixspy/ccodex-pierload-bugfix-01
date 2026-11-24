@@ -1,7 +1,18 @@
 export const lineageViewTemplate = `
 <section class="panel">
   <h2>轴重血缘</h2>
-  <p class="hint">记录驳载分票、二次过磅等轴重血缘边。</p>
+  <p class="hint">记录驳载分票、二次过磅等轴重血缘边；续磅票缺边即血统不齐。</p>
+  <div class="detail-box">
+    <p :class="lineageHealth.complete ? 'ok' : 'bad'">
+      血统 {{ lineageHealth.complete ? '齐全' : '缺边待补' }}
+      · 缺边票 {{ lineageHealth.missing_count }}
+    </p>
+    <ul v-if="lineageHealth.missing.length">
+      <li v-for="m in lineageHealth.missing" :key="m.id">
+        {{ m.ticket_code }} · {{ m.vehicle_plate }} · {{ m.bl_ref }} · {{ m.status }}
+      </li>
+    </ul>
+  </div>
   <div class="form-row">
     <div><label>起点票</label>
       <select v-model.number="lineageForm.from_ticket_id">

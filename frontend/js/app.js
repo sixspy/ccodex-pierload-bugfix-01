@@ -34,6 +34,7 @@ createApp({
     const seals = ref([]);
     const blList = ref([]);
     const lineageEdges = ref([]);
+    const lineageHealth = ref({ complete: true, missing_count: 0, missing: [] });
     const customsJobs = ref([]);
     const craneJobs = ref([]);
     const bridgeDetail = ref(null);
@@ -140,6 +141,11 @@ createApp({
         seals.value = sl.items || [];
         blList.value = bl.items || [];
         lineageEdges.value = lg.items || [];
+        lineageHealth.value = {
+          complete: lg.complete !== false,
+          missing_count: lg.missing_count ?? (lg.missing || []).length,
+          missing: lg.missing || [],
+        };
         customsJobs.value = cj.items || [];
         craneJobs.value = cj2.items || [];
         if (bridges.value.length) {
@@ -262,7 +268,7 @@ createApp({
     return {
       token, user, username, password, err, actionErr, actionOk, tab, nav,
       dash, bridges, lanes, tickets, overloads, gateReleases, seals, blList,
-      lineageEdges, customsJobs, craneJobs, bridgeDetail, ticketDetail,
+      lineageEdges, lineageHealth, customsJobs, craneJobs, bridgeDetail, ticketDetail,
       reconOne, reconAllItems, proofOne, reconCode, proofCode,
       bridgeForm, laneForm, ticketForm, overloadOpenForm, gateForm, sealForm,
       blForm, lineageForm, customsForm, craneForm,

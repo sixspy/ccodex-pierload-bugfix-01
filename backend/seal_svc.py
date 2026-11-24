@@ -7,6 +7,7 @@ from fastapi import APIRouter, HTTPException
 
 from auth import AuthHeader, require_user, require_writer
 from db import connect, now_iso, write_audit
+from lineage_rules import ensure_ticket_lineage_complete
 from locks import release, require_lock
 from models import SealIn
 from validators import format_manifest, validate_ticket_sealable
@@ -46,6 +47,7 @@ def create_seal(body: SealIn, authorization: AuthHeader = None):
             ).fetchone()
             if open_hold:
                 raise HTTPException(409, "超重开放不得封闸")
+            ensure_ticket_lineage_complete(conn, ticket)
             next_gen = int(ticket["generation"]) + 1
             manifest = body.manifest or format_manifest(
                 dict(ticket), float(ticket["gross_t"]), next_gen

@@ -4,6 +4,7 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException
 
 from auth import AuthHeader, require_user
+from lineage_rules import lineage_health, ticket_lineage_ok
 from validators import validate_bl_match
 
 router = APIRouter(tags=["reconcile"])
@@ -65,15 +66,16 @@ def _reconcile_bl(conn, bl_code: str) -> dict:
            WHERE t.bl_ref=?""",
         (bl_code,),
     ).fetchall()
-    # BUGFIX-01 埋雷：血统互证恒绿，掩盖边表空行
-    proof_ok = True
+    # 血统按边表实算：续磅票缺父子边即不齐，proof 不得出。
+    health = lineage_health(conn, bl_code=bl_code)
     return {
         "bl_code": bl_code,
         "declared_gross_t": declared,
         "ticket_sum_t": ticket_sum,
         "balanced": matched,
-        "proof_ready": proof_ok,
-        "lineage_complete": True,
+        "proof_ready": matched and health["complete"],
+        "lineage_complete": health["complete"],
+        "lineage_missing": health["missing"],
         "seal_count": len(seal_rows),
         "tickets": [dict(t) for t in tickets],
         "seals": [dict(s) for s in seal_rows],
@@ -111,6 +113,7 @@ def proof_ticket(ticket_code: str, authorization: AuthHeader = None):
             manifest_match = validate_bl_match(
                 float(bl["declared_gross_t"]), float(ticket["gross_t"])
             )
+        lineage_ok = ticket_lineage_ok(conn, ticket)
         return {
             "ticket_code": ticket_code,
             "bl_ref": ticket["bl_ref"],
@@ -120,7 +123,11 @@ def proof_ticket(ticket_code: str, authorization: AuthHeader = None):
             "seal_generation": seal["ticket_generation"] if seal else None,
             "released": release is not None,
             "overload_closed": overload_closed,
+            "lineage_ok": lineage_ok,
             "coherent": bool(
-                manifest_match and overload_closed and (seal or release)
+                manifest_match
+                and overload_closed
+                and (seal or release)
+                and lineage_ok
             ),
         }
